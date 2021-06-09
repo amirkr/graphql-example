@@ -1,4 +1,4 @@
-package databse
+package database
 
 
 import (
@@ -7,7 +7,7 @@ import (
 	"log"
 	"time"
 	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/bson"
+	"go.mongodb.org/mongo-driver/bson"
     "go.mongodb.org/mongo-driver/mongo/options"
 	"gitlab.com/amirkerroumi/my-gqlgen/graph/model"
 )
@@ -57,7 +57,7 @@ func (db *DB) FindyID(ID string) *model.Author {
 	if err != nil {
 		log.Fatal("MongoDB Author Find Failure:", err.Error())
 	}
-	author := model.Author()
+	var author *model.Author
 	res.Decode(&author)
 	return author
 }
@@ -73,7 +73,7 @@ func (db *DB) All() []*model.Author {
 	}
 	for cursor.Next(ctx){
 		var author *model.Author
-		author, err := res.Decode(&author)
+		err := cursor.Decode(&author)
 		if err != nil {
 			log.Fatal("MongoDB Failure to Decode Author:", err.Error())
 		}

@@ -9,10 +9,10 @@ import (
 
 	"gitlab.com/amirkerroumi/my-gqlgen/graph/generated"
 	"gitlab.com/amirkerroumi/my-gqlgen/graph/model"
-	// "gitlab.com/amirkerroumi/my-gqlgen/database"
+	"gitlab.com/amirkerroumi/my-gqlgen/database"
 )
 
-// var db = database.Connect()
+var db = database.Connect()
 
 func (r *queryResolver) Author(ctx context.Context, id string) (*model.Author, error) {
 	panic(fmt.Errorf("not implemented"))
