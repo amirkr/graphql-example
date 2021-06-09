@@ -7,19 +7,21 @@ import (
 	"context"
 	"fmt"
 
+	"gitlab.com/amirkerroumi/my-gqlgen/database"
 	"gitlab.com/amirkerroumi/my-gqlgen/graph/generated"
 	"gitlab.com/amirkerroumi/my-gqlgen/graph/model"
-	"gitlab.com/amirkerroumi/my-gqlgen/database"
 )
 
-var db = database.Connect()
+func (r *mutationResolver) CreateAuthor(ctx context.Context, input model.NewAuthor) (*model.Author, error) {
+	return db.Save(input), nil
+}
 
 func (r *queryResolver) Author(ctx context.Context, id string) (*model.Author, error) {
-	panic(fmt.Errorf("not implemented"))
+	return db.FindyID(id), nil
 }
 
 func (r *queryResolver) Authors(ctx context.Context) ([]*model.Author, error) {
-	panic(fmt.Errorf("not implemented"))
+	return db.All(), nil
 }
 
 func (r *queryResolver) Book(ctx context.Context, id string) (*model.Book, error) {
@@ -30,9 +32,13 @@ func (r *queryResolver) Books(ctx context.Context) ([]*model.Book, error) {
 	panic(fmt.Errorf("not implemented"))
 }
 
+// Mutation returns generated.MutationResolver implementation.
+func (r *Resolver) Mutation() generated.MutationResolver { return &mutationResolver{r} }
+
 // Query returns generated.QueryResolver implementation.
 func (r *Resolver) Query() generated.QueryResolver { return &queryResolver{r} }
 
+type mutationResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }
 
 // !!! WARNING !!!
@@ -41,4 +47,4 @@ type queryResolver struct{ *Resolver }
 //  - When renaming or deleting a resolver the old code will be put in here. You can safely delete
 //    it when you're done.
 //  - You have helper methods in this file. Move them out to keep these resolver files clean.
-type mutationResolver struct{ *Resolver }
+var db = database.Connect()

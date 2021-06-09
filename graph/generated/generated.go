@@ -35,6 +35,7 @@ type Config struct {
 }
 
 type ResolverRoot interface {
+	Mutation() MutationResolver
 	Query() QueryResolver
 }
 
@@ -54,9 +55,8 @@ type ComplexityRoot struct {
 		Title  func(childComplexity int) int
 	}
 
-	NewAuthor struct {
-		Firstname func(childComplexity int) int
-		Lastname  func(childComplexity int) int
+	Mutation struct {
+		CreateAuthor func(childComplexity int, input model.NewAuthor) int
 	}
 
 	NewBook struct {
@@ -72,6 +72,9 @@ type ComplexityRoot struct {
 	}
 }
 
+type MutationResolver interface {
+	CreateAuthor(ctx context.Context, input model.NewAuthor) (*model.Author, error)
+}
 type QueryResolver interface {
 	Author(ctx context.Context, id string) (*model.Author, error)
 	Authors(ctx context.Context) ([]*model.Author, error)
@@ -136,19 +139,17 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Book.Title(childComplexity), true
 
-	case "NewAuthor.firstname":
-		if e.complexity.NewAuthor.Firstname == nil {
+	case "Mutation.createAuthor":
+		if e.complexity.Mutation.CreateAuthor == nil {
 			break
 		}
 
-		return e.complexity.NewAuthor.Firstname(childComplexity), true
-
-	case "NewAuthor.lastname":
-		if e.complexity.NewAuthor.Lastname == nil {
-			break
+		args, err := ec.field_Mutation_createAuthor_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
 		}
 
-		return e.complexity.NewAuthor.Lastname(childComplexity), true
+		return e.complexity.Mutation.CreateAuthor(childComplexity, args["input"].(model.NewAuthor)), true
 
 	case "NewBook.author":
 		if e.complexity.NewBook.Author == nil {
@@ -226,6 +227,20 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 				Data: buf.Bytes(),
 			}
 		}
+	case ast.Mutation:
+		return func(ctx context.Context) *graphql.Response {
+			if !first {
+				return nil
+			}
+			first = false
+			data := ec._Mutation(ctx, rc.Operation.SelectionSet)
+			var buf bytes.Buffer
+			data.MarshalGQL(&buf)
+
+			return &graphql.Response{
+				Data: buf.Bytes(),
+			}
+		}
 
 	default:
 		return graphql.OneShot(graphql.ErrorResponse(ctx, "unsupported GraphQL operation"))
@@ -262,7 +277,7 @@ type Author {
   lastname: String!
 }
 
-type NewAuthor {
+input NewAuthor {
   firstname: String!
   lastname: String!
 }
@@ -283,6 +298,10 @@ type Query {
   authors: [Author!]!
   book(_id: String!): Book!
   books: [Book!]!
+}
+
+type Mutation {
+  createAuthor(input: NewAuthor!): Author!
 }`, BuiltIn: false},
 }
 var parsedSchema = gqlparser.MustLoadSchema(sources...)
@@ -290,6 +309,21 @@ var parsedSchema = gqlparser.MustLoadSchema(sources...)
 // endregion ************************** generated!.gotpl **************************
 
 // region    ***************************** args.gotpl *****************************
+
+func (ec *executionContext) field_Mutation_createAuthor_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 model.NewAuthor
+	if tmp, ok := rawArgs["input"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
+		arg0, err = ec.unmarshalNNewAuthor2gitlabᚗcomᚋamirkerroumiᚋmyᚑgqlgenᚋgraphᚋmodelᚐNewAuthor(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["input"] = arg0
+	return args, nil
+}
 
 func (ec *executionContext) field_Query___type_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
@@ -584,7 +618,7 @@ func (ec *executionContext) _Book_author(ctx context.Context, field graphql.Coll
 	return ec.marshalNAuthor2ᚖgitlabᚗcomᚋamirkerroumiᚋmyᚑgqlgenᚋgraphᚋmodelᚐAuthor(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _NewAuthor_firstname(ctx context.Context, field graphql.CollectedField, obj *model.NewAuthor) (ret graphql.Marshaler) {
+func (ec *executionContext) _Mutation_createAuthor(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -592,17 +626,24 @@ func (ec *executionContext) _NewAuthor_firstname(ctx context.Context, field grap
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:     "NewAuthor",
+		Object:     "Mutation",
 		Field:      field,
 		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
+		IsMethod:   true,
+		IsResolver: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_createAuthor_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Firstname, nil
+		return ec.resolvers.Mutation().CreateAuthor(rctx, args["input"].(model.NewAuthor))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -614,44 +655,9 @@ func (ec *executionContext) _NewAuthor_firstname(ctx context.Context, field grap
 		}
 		return graphql.Null
 	}
-	res := resTmp.(string)
+	res := resTmp.(*model.Author)
 	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _NewAuthor_lastname(ctx context.Context, field graphql.CollectedField, obj *model.NewAuthor) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "NewAuthor",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Lastname, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
+	return ec.marshalNAuthor2ᚖgitlabᚗcomᚋamirkerroumiᚋmyᚑgqlgenᚋgraphᚋmodelᚐAuthor(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _NewBook_title(ctx context.Context, field graphql.CollectedField, obj *model.NewBook) (ret graphql.Marshaler) {
@@ -2036,6 +2042,34 @@ func (ec *executionContext) ___Type_ofType(ctx context.Context, field graphql.Co
 
 // region    **************************** input.gotpl *****************************
 
+func (ec *executionContext) unmarshalInputNewAuthor(ctx context.Context, obj interface{}) (model.NewAuthor, error) {
+	var it model.NewAuthor
+	var asMap = obj.(map[string]interface{})
+
+	for k, v := range asMap {
+		switch k {
+		case "firstname":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("firstname"))
+			it.Firstname, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "lastname":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("lastname"))
+			it.Lastname, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
 // endregion **************************** input.gotpl *****************************
 
 // region    ************************** interface.gotpl ***************************
@@ -2118,24 +2152,23 @@ func (ec *executionContext) _Book(ctx context.Context, sel ast.SelectionSet, obj
 	return out
 }
 
-var newAuthorImplementors = []string{"NewAuthor"}
+var mutationImplementors = []string{"Mutation"}
 
-func (ec *executionContext) _NewAuthor(ctx context.Context, sel ast.SelectionSet, obj *model.NewAuthor) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, newAuthorImplementors)
+func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, mutationImplementors)
+
+	ctx = graphql.WithFieldContext(ctx, &graphql.FieldContext{
+		Object: "Mutation",
+	})
 
 	out := graphql.NewFieldSet(fields)
 	var invalids uint32
 	for i, field := range fields {
 		switch field.Name {
 		case "__typename":
-			out.Values[i] = graphql.MarshalString("NewAuthor")
-		case "firstname":
-			out.Values[i] = ec._NewAuthor_firstname(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
-		case "lastname":
-			out.Values[i] = ec._NewAuthor_lastname(ctx, field, obj)
+			out.Values[i] = graphql.MarshalString("Mutation")
+		case "createAuthor":
+			out.Values[i] = ec._Mutation_createAuthor(ctx, field)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
@@ -2628,6 +2661,11 @@ func (ec *executionContext) marshalNBoolean2bool(ctx context.Context, sel ast.Se
 		}
 	}
 	return res
+}
+
+func (ec *executionContext) unmarshalNNewAuthor2gitlabᚗcomᚋamirkerroumiᚋmyᚑgqlgenᚋgraphᚋmodelᚐNewAuthor(ctx context.Context, v interface{}) (model.NewAuthor, error) {
+	res, err := ec.unmarshalInputNewAuthor(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) unmarshalNString2string(ctx context.Context, v interface{}) (string, error) {

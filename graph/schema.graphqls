@@ -8,7 +8,7 @@ type Author {
   lastname: String!
 }
 
-type NewAuthor {
+input NewAuthor {
   firstname: String!
   lastname: String!
 }
@@ -19,9 +19,9 @@ type Book {
   author: Author!
 }
 
-type NewBook {
+input NewBook {
   title: String!
-  author: Author!
+  authorId: String!
 }
 
 type Query {
@@ -29,4 +29,8 @@ type Query {
   authors: [Author!]!
   book(_id: String!): Book!
   books: [Book!]!
+}
+
+type Mutation {
+  createAuthor(input: NewAuthor!): Author!
 }

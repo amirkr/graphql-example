@@ -33,7 +33,7 @@ func Connect() *DB {
 	}
 }
 
-func (db* DB) Save(input *model.NewAuthor) *model.Author {
+func (db* DB) Save(input model.NewAuthor) *model.Author {
 	collection := db.client.Database("my-gqlgen").Collection("author")
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
