@@ -7,9 +7,9 @@ import (
 	"context"
 	"fmt"
 
-	"gitlab.com/amirkerroumi/my-gqlgen/database"
-	"gitlab.com/amirkerroumi/my-gqlgen/graph/generated"
-	"gitlab.com/amirkerroumi/my-gqlgen/graph/model"
+	"github.com/amirkr/graphql-example/database"
+	"github.com/amirkr/graphql-example/graph/generated"
+	"github.com/amirkr/graphql-example/graph/model"
 )
 
 func (r *mutationResolver) CreateAuthor(ctx context.Context, input model.NewAuthor) (*model.Author, error) {
